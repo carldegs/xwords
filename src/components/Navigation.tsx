@@ -28,12 +28,11 @@ const Navigation: React.FC<
         {...props}
       >
         <Heading
-          color="cyan.700"
           fontSize={{ base: 'xl', lg: '2xl' }}
           onClick={() => router.push('/')}
           cursor="pointer"
         >
-          DAMI MONG ALAM
+          XWords
         </Heading>
 
         <Spacer />
@@ -44,7 +43,6 @@ const Navigation: React.FC<
               <Flex cursor="pointer" alignItems="center">
                 <Avatar size="sm" name={username} mr={{ base: 0, lg: 2 }} />
                 <Text
-                  color="cyan.100"
                   lineHeight="32px"
                   verticalAlign="middle"
                   fontWeight="medium"
