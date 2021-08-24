@@ -1,3 +1,5 @@
+import CellCoverage from './CellCoverage';
+
 interface GridCellProperties {
   isSelected?: boolean;
   isHighlighted?: boolean;
@@ -7,6 +9,9 @@ interface GridCellProperties {
   rowNum: number;
   colNum: number;
   isBlockHighlighted?: boolean;
+  isWordHighlighted?: boolean;
+  isRootnumHighlighted?: boolean;
+  coverage?: CellCoverage;
 }
 
 export default GridCellProperties;

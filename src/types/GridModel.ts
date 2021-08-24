@@ -1,11 +1,25 @@
-import { getModelForClass, modelOptions, prop } from '@typegoose/typegoose';
+import {
+  getModelForClass,
+  modelOptions,
+  prop,
+  Ref,
+} from '@typegoose/typegoose';
 
+// TODO: Create own model
 export class Clue {
   @prop()
   public clue?: string;
 
   @prop()
   public answer?: string[];
+}
+
+export class RootCellDir {
+  @prop({ required: true })
+  public length: number;
+
+  @prop()
+  public clue?: Ref<Clue>;
 }
 
 export class RootCell {
@@ -15,11 +29,14 @@ export class RootCell {
   @prop({ required: true })
   public y: number;
 
-  @prop({ required: true })
-  public across: Clue;
+  @prop()
+  public index?: number;
 
-  @prop({ required: true })
-  public down: Clue;
+  @prop()
+  public across?: RootCellDir;
+
+  @prop()
+  public down?: RootCellDir;
 }
 
 export class Position {
