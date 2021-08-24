@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 
-import GridCell from '../../components/GridCell';
+import Grid from '../../components/Grid';
 import GridSizeModal from '../../components/GridSizeModal';
 import Layout from '../../components/Layout';
 import useCreateGrid from '../../hooks/useCreateGrid';
@@ -91,21 +91,11 @@ const ModifyGridPage: React.FC = () => {
             </Stack>
           )}
         </Box>
-        <Box borderWidth="2px" borderColor="gray.900" w="fit-content">
-          {grid.table?.map((row) => (
-            <Flex flexDir="row" key={`row-${row[0].rowNum}`}>
-              {row?.map((cell) => (
-                <GridCell
-                  key={`(${cell.rowNum}, ${cell.colNum})`}
-                  onClick={grid.blockMode ? grid.toggleBlock : undefined}
-                  onHover={grid.showHoverMode && grid.onHover}
-                  cursor="pointer"
-                  {...cell}
-                />
-              ))}
-            </Flex>
-          ))}
-        </Box>
+        <Grid
+          table={grid.table}
+          onCellClick={grid.blockMode ? grid.toggleBlock : grid.selectCell}
+          onCellHover={grid.showHoverMode && grid.onHover}
+        />
       </Flex>
     </Layout>
   );

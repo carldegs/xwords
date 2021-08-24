@@ -3,7 +3,9 @@ import { useMemo } from 'react';
 
 import GridCellProperties from '../types/GridCellProperties';
 
-interface GridCellProps extends Omit<FlexProps, 'onClick'>, GridCellProperties {
+export interface GridCellProps
+  extends Omit<FlexProps, 'onClick'>,
+    GridCellProperties {
   onClick?: (cell: GridCellProperties) => void;
   onHover?: (cell: GridCellProperties) => void;
   size?: 'sm' | 'md' | 'lg';
@@ -42,13 +44,20 @@ const GridCell: React.FC<GridCellProps> = ({
   onClick,
   size = 'md',
   isBlockHighlighted,
+  isWordHighlighted,
+  coverage,
+  isRootnumHighlighted,
   onHover,
   ...props
 }) => {
-  let bg = 'transparent';
+  let bg = 'white';
   const sizeStyle = gridCellSize[size];
 
   if (isHighlighted) {
+    bg = 'blue.200';
+  }
+
+  if (isWordHighlighted) {
     bg = 'blue.50';
   }
 
@@ -73,6 +82,9 @@ const GridCell: React.FC<GridCellProps> = ({
       rowNum,
       colNum,
       isBlockHighlighted,
+      isWordHighlighted,
+      isRootnumHighlighted,
+      coverage,
     }),
     [
       isSelected,
@@ -83,13 +95,18 @@ const GridCell: React.FC<GridCellProps> = ({
       rowNum,
       colNum,
       isBlockHighlighted,
+      isWordHighlighted,
+      isRootnumHighlighted,
+      coverage,
     ]
   );
 
   return (
     <Flex
       bg={bg}
-      border="0.5px solid var(--chakra-colors-gray-700)"
+      m="0.5px"
+      borderRadius="1.5px"
+      // border="0.5px solid var(--chakra-colors-gray-700)"
       onClick={(e) => {
         e.preventDefault();
         if (onClick) {
@@ -114,7 +131,13 @@ const GridCell: React.FC<GridCellProps> = ({
       justifyContent="center"
       {...props}
     >
-      <Text pos="absolute" fontSize={sizeStyle.rootnumSize} top="2%" left="5%">
+      <Text
+        pos="absolute"
+        fontSize={sizeStyle.rootnumSize}
+        top="2%"
+        left="5%"
+        fontWeight={isRootnumHighlighted && 'bold'}
+      >
         {rootnum}
       </Text>
       <Text fontSize={sizeStyle.valueSize} fontWeight="bold" mt={2}>
