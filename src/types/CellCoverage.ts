@@ -1,6 +1,12 @@
+export interface CellCoverageParams {
+  rootnum: number;
+  position: number;
+  wordLength: number;
+}
+
 interface CellCoverage {
-  across?: number;
-  down?: number;
+  down?: CellCoverageParams;
+  across?: CellCoverageParams;
 }
 
 export default CellCoverage;

@@ -1,101 +1,66 @@
-import { EditIcon } from '@chakra-ui/icons';
-import {
-  Box,
-  Button,
-  Checkbox,
-  Flex,
-  Heading,
-  Stack,
-  useDisclosure,
-} from '@chakra-ui/react';
+import { Flex, useDisclosure } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
 import React, { useEffect } from 'react';
 
+import ClueBox from '../../components/ClueBox';
+import ClueList from '../../components/ClueList';
 import Grid from '../../components/Grid';
 import GridSizeModal from '../../components/GridSizeModal';
 import Layout from '../../components/Layout';
+import Toolbox from '../../components/Toolbox';
 import useCreateGrid from '../../hooks/useCreateGrid';
 
 const ModifyGridPage: React.FC = () => {
   const router = useRouter();
   const grid = useCreateGrid();
-  const {
-    onOpen: onSizeModalOpen,
-    onClose: onSizeModalClose,
-    isOpen: isSizeModalOpen,
-  } = useDisclosure();
-
+  const sizeModalDisc = useDisclosure();
+  const { onOpen } = sizeModalDisc;
   useEffect(() => {
     if (router.query.id === 'new') {
-      onSizeModalOpen();
+      onOpen();
     }
-  }, [router.query.id, onSizeModalOpen]);
+  }, [router.query.id, onOpen]);
 
   return (
     <Layout variant="fullContent">
       <GridSizeModal
-        onClose={onSizeModalClose}
-        isOpen={isSizeModalOpen}
+        onClose={sizeModalDisc.onClose}
+        isOpen={sizeModalDisc.isOpen}
         onCreate={(rows, cols) => {
           grid.setRows(rows);
           grid.setCols(cols);
+          grid.resetGrid();
         }}
         defaultCols={grid.cols}
         defaultRows={grid.rows}
       />
-      <Flex
-        h="full"
-        overflow="auto"
-        justifyContent="center"
-        alignItems="center"
-      >
-        <Box pr={12} minW="250px">
-          <Heading fontSize="xl" mb={4}>
-            TOOLS
-          </Heading>
-          <Button
-            leftIcon={
-              grid.blockMode ? (
-                <Box w="12px" h="12px" bg="gray.800" />
-              ) : (
-                <EditIcon />
-              )
-            }
-            onClick={() => {
-              grid.setBlockMode((mode) => !mode);
-            }}
-            isFullWidth
-          >
-            {grid.blockMode ? 'Block' : 'Text'}
-          </Button>
-          {grid.blockMode && (
-            <Stack>
-              <Checkbox
-                onChange={(e) => {
-                  grid.setAutoSymmetry(e.target.checked);
-                }}
-                defaultChecked={grid.autoSymmetry}
-                mt={2}
-              >
-                Symmetry
-              </Checkbox>
-              <Checkbox
-                onChange={(e) => {
-                  grid.setHoverMode(e.target.checked);
-                }}
-                defaultChecked={grid.showHoverMode}
-                mt={2}
-              >
-                Highlight cells on hover
-              </Checkbox>
-            </Stack>
-          )}
-        </Box>
-        <Grid
-          table={grid.table}
-          onCellClick={grid.blockMode ? grid.toggleBlock : grid.selectCell}
-          onCellHover={grid.showHoverMode && grid.onHover}
-        />
+      <Flex h="full" justifyContent="center" alignItems="center">
+        <Flex
+          h="fit-content"
+          overflow="auto"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <Flex flexDir="column" minW="xs" maxW="sm" mr={8}>
+            <Toolbox
+              flexGrow={0}
+              grid={grid}
+              sizeModalDisclosure={sizeModalDisc}
+              mb={4}
+            />
+            <ClueList clues={grid.clues} maxH="400px" mt={2} />
+          </Flex>
+
+          <Flex flexDir="column" alignItems="center" justifyContent="center">
+            <ClueBox grid={grid} mb={4} />
+            <Grid
+              table={grid.table}
+              onCellClick={grid.blockMode ? grid.toggleBlock : grid.selectCell}
+              onCellHover={grid.showHoverMode && grid.onHover}
+              onCellValueChange={grid.onCellValueChange}
+            />
+          </Flex>
+        </Flex>
       </Flex>
     </Layout>
   );
