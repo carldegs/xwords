@@ -1,4 +1,6 @@
 import { FlexProps, Flex, Text } from '@chakra-ui/react';
+import { useEffect } from 'react';
+import { useRef } from 'react';
 import { useMemo } from 'react';
 
 import GridCellProperties from '../types/GridCellProperties';
@@ -8,6 +10,7 @@ export interface GridCellProps
     GridCellProperties {
   onClick?: (cell: GridCellProperties) => void;
   onHover?: (cell: GridCellProperties) => void;
+  onCellValueChange: (cell: GridCellProperties, value: string) => void;
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -48,10 +51,20 @@ const GridCell: React.FC<GridCellProps> = ({
   coverage,
   isRootnumHighlighted,
   onHover,
+  onCellValueChange,
   ...props
 }) => {
   let bg = 'white';
   const sizeStyle = gridCellSize[size];
+  const textInput = useRef(null);
+
+  useEffect(() => {
+    if (isSelected) {
+      textInput.current?.focus();
+    } else {
+      textInput.current?.blur();
+    }
+  }, [isSelected, rowNum, colNum]);
 
   if (isHighlighted) {
     bg = 'blue.200';
@@ -112,6 +125,7 @@ const GridCell: React.FC<GridCellProps> = ({
         if (onClick) {
           onClick(cellProperties);
         }
+        // textInput.current.focus();
       }}
       onMouseEnter={() => {
         if (onHover) {
@@ -131,6 +145,25 @@ const GridCell: React.FC<GridCellProps> = ({
       justifyContent="center"
       {...props}
     >
+      <input
+        onChange={(e) => {
+          const letter = e.target.value[e.target.value.length - 1];
+
+          if (onCellValueChange) {
+            onCellValueChange(cellProperties, letter);
+          }
+        }}
+        value={value || ''}
+        style={{
+          opacity: 0,
+          height: '100%',
+          width: '100%',
+          position: 'absolute',
+          cursor: 'pointer',
+          // display: 'none',
+        }}
+        ref={textInput}
+      />
       <Text
         pos="absolute"
         fontSize={sizeStyle.rootnumSize}

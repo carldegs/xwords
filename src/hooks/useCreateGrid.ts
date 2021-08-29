@@ -8,16 +8,18 @@ import {
 } from 'react';
 
 import CellCoverage from '../types/CellCoverage';
+import Direction from '../types/Direction';
 import GridCellProperties from '../types/GridCellProperties';
-import { GridInterface, Position, RootCell } from '../types/GridModel';
+import { Clue, GridInterface, Position, RootCell } from '../types/GridModel';
 import createCoverageMap from '../utils/createCoverageMap';
 import createPositionsTable from '../utils/createPositionsTable';
 import createRootCells from '../utils/createRootCells';
 import sortPositions from '../utils/sortPositions';
+import updateClue from '../utils/updateClue';
 
 type CellEventHandler = (cell: GridCellProperties) => void;
 
-interface UseCreateGridResponse extends GridInterface {
+export interface UseCreateGridResponse extends GridInterface {
   setRows: Dispatch<SetStateAction<number>>;
   setCols: Dispatch<SetStateAction<number>>;
   setAutoSymmetry: Dispatch<SetStateAction<boolean>>;
@@ -26,8 +28,20 @@ interface UseCreateGridResponse extends GridInterface {
   toggleBlock: CellEventHandler;
   selectCell: CellEventHandler;
   onHover: CellEventHandler;
+  onClueTextChange: (clue: string, index: number, direction: Direction) => void;
+  onClueAnswerChange: (
+    answer: string[],
+    index: number,
+    direction: Direction
+  ) => void;
+  resetGrid: () => void;
+  onCellValueChange: (cell: GridCellProperties, value: string) => void;
+  wordMode: Direction;
+  moveSelectedCell: (grid: GridCellProperties, value: string) => void;
 
   table?: GridCellProperties[][];
+  clues: Record<string, Clue>;
+  selectedClue?: Record<string, Clue>;
   blockMode: boolean;
   autoSymmetry: boolean;
   showHoverMode: boolean;
@@ -64,7 +78,10 @@ const getInverseCellPosition = (
     : undefined;
 
 // TODO: Call useQuery to fetch grid. Change param to grid id instead.
-const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
+const useCreateGrid = (
+  grid?: GridInterface,
+  _clues?: Record<string, Clue>
+): UseCreateGridResponse => {
   const [rows, setRows] = useState(grid?.rows || 0);
   const [cols, setCols] = useState(grid?.cols || 0);
   const [blocks, setBlocks] = useState(grid?.blocks || []);
@@ -74,13 +91,14 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
   const [autoSymmetry, setAutoSymmetry] = useState(true);
   const [showHoverMode, setHoverMode] = useState(true);
   const [blockMode, _setBlockMode] = useState(true);
+  const [clues, setClues] = useState(_clues || {});
   const [hoveredCell, setHoveredCell] = useState<
     GridCellProperties | undefined
   >(undefined);
   const [selectedCell, setSelectedCell] = useState<
     GridCellProperties | undefined
   >(undefined);
-  const [wordMode, setWordMode] = useState<keyof CellCoverage>('across');
+  const [wordMode, setWordMode] = useState<Direction>('across');
 
   const blockTable = useMemo(
     () => createPositionsTable(blocks, rows, cols) as number[][],
@@ -89,6 +107,7 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
 
   useEffect(() => {
     const newRootCells = sortPositions(createRootCells(blockTable));
+    const coverageMap = createCoverageMap(newRootCells, rows, cols, true);
     setRootCells(newRootCells);
     setRootCellTable(
       createPositionsTable(newRootCells, rows, cols, {
@@ -96,7 +115,103 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
         skipSort: true,
       })
     );
-    setCellCoverageMap(createCoverageMap(newRootCells, rows, cols, true));
+    setCellCoverageMap(coverageMap);
+
+    // TODO: Unlink clue to root cell instead of modifying it.
+    setClues((clues) => {
+      let newClues: Record<string, Clue> = {};
+
+      newRootCells.forEach(({ index, across, down }) => {
+        let newAcrossClue: Clue | undefined = undefined;
+        let newDownClue: Clue | undefined = undefined;
+
+        if (across?.length) {
+          const currAcrossClue = clues[`${index}/across`];
+          if (currAcrossClue?.answer?.length) {
+            if (across?.length === currAcrossClue?.answer?.length) {
+              newAcrossClue = { ...currAcrossClue };
+            } else {
+              newAcrossClue = {
+                ...currAcrossClue,
+                answer: Array.from(new Array(across.length)).map((_, i) =>
+                  i < currAcrossClue.answer.length
+                    ? currAcrossClue.answer[i]
+                    : ''
+                ),
+              };
+            }
+          } else {
+            newAcrossClue = {
+              clue: '',
+              answer: Array.from(new Array(across.length)).fill(''),
+            };
+          }
+        }
+
+        if (down?.length) {
+          const currDownClue = clues[`${index}/down`];
+
+          if (currDownClue?.answer?.length) {
+            if (down?.length === currDownClue?.answer?.length) {
+              newDownClue = { ...currDownClue };
+            } else {
+              newDownClue = {
+                ...currDownClue,
+                answer: Array.from(new Array(down.length)).map((_, i) =>
+                  i < currDownClue.answer.length ? currDownClue.answer[i] : ''
+                ),
+              };
+            }
+          } else {
+            newDownClue = {
+              clue: '',
+              answer: Array.from(new Array(down.length)).fill(''),
+            };
+          }
+        }
+
+        newClues = {
+          ...newClues,
+          ...(newAcrossClue ? { [`${index}/across`]: newAcrossClue } : {}),
+          ...(newDownClue ? { [`${index}/down`]: newDownClue } : {}),
+        };
+      });
+
+      coverageMap?.forEach((row) =>
+        row.forEach((cell) => {
+          const { across, down } = cell || {};
+          if (across?.wordLength && down?.wordLength) {
+            const acrossKey = `${across.rootnum}/across`;
+            const downKey = `${down.rootnum}/down`;
+            const acrossClue = newClues[acrossKey];
+            const downClue = newClues[downKey];
+
+            if (
+              acrossClue.answer[across.position] !==
+              downClue.answer[down.position]
+            ) {
+              newClues = {
+                ...newClues,
+                [acrossKey]: {
+                  ...newClues[acrossKey],
+                  answer: newClues[acrossKey].answer.map((a, i) =>
+                    i === across.position ? '' : a
+                  ),
+                },
+                [downKey]: {
+                  ...newClues[downKey],
+                  answer: newClues[downKey].answer.map((a, i) =>
+                    i === down.position ? '' : a
+                  ),
+                },
+              };
+            }
+          }
+        })
+      );
+
+      return newClues;
+    });
   }, [blockTable, rows, cols]);
 
   const toggleBlock = useCallback(
@@ -143,9 +258,155 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
     _setBlockMode(isBlockMode);
   }, []);
 
+  const moveSelectedCell = useCallback(
+    (grid: GridCellProperties, backward = false) => {
+      let newX = grid.rowNum;
+      let newY = grid.colNum;
+      let iter = 0;
+
+      do {
+        if (!backward && newX === rows - 1 && newY === cols - 1) {
+          newX = 0;
+          newY = 0;
+        } else if (backward && newX === 0 && newY === 0) {
+          newX = rows - 1;
+          newY = rows - 1;
+        } else if (wordMode === 'across') {
+          newY += backward ? -1 : 1;
+
+          if (newY >= cols || newY < 0) {
+            newY = backward ? cols - 1 : 0;
+            newX += backward ? -1 : 1;
+          }
+        } else if (wordMode === 'down') {
+          newX += backward ? -1 : 1;
+
+          if (newX >= rows || newX < 0) {
+            newX = backward ? rows - 1 : 0;
+            newY += backward ? -1 : 1;
+          }
+        }
+
+        iter++;
+      } while (blockTable && blockTable[newX][newY] && iter < rows * cols + 1);
+
+      setSelectedCell({
+        rowNum: newX,
+        colNum: newY,
+        coverage: cellCoverageMap ? cellCoverageMap[newX][newY] : {},
+      });
+    },
+    [rows, cols, cellCoverageMap, blockTable, wordMode]
+  );
+
+  const onCellValueChange = useCallback(
+    (grid: GridCellProperties, value: string) => {
+      const key = `${grid.coverage[wordMode].rootnum}/${wordMode}`;
+      const oppWordMode = wordMode === 'across' ? 'down' : 'across';
+      const oppKey = `${grid.coverage[oppWordMode].rootnum}/${oppWordMode}`;
+      const finalValue = value?.toUpperCase() || '';
+
+      setClues((clues) => ({
+        ...clues,
+        [key]: updateClue(grid.coverage[wordMode], finalValue, clues[key]),
+        [oppKey]: updateClue(
+          grid.coverage[oppWordMode],
+          finalValue,
+          clues[oppKey]
+        ),
+      }));
+
+      moveSelectedCell(grid, !value);
+    },
+    [wordMode, moveSelectedCell]
+  );
+
+  const onClueAnswerChange = useCallback(
+    (answer: string[], index: number, direction: Direction) => {
+      const key = `${index}/${direction}`;
+      const rootCell = rootCells.find(
+        ({ index: rootCellIndex }) => rootCellIndex === index
+      );
+      const isAcross = wordMode === 'across';
+
+      setClues((clues) => {
+        let newClues = {
+          ...clues,
+          [key]: {
+            ...clues[key],
+            answer,
+          },
+        };
+
+        for (
+          let z = !isAcross ? rootCell.x : rootCell.y;
+          z < answer.length;
+          z++
+        ) {
+          const coverage =
+            cellCoverageMap[isAcross ? rootCell.x : z][
+              isAcross ? z : rootCell.y
+            ];
+          const oppCoverage = coverage[isAcross ? 'down' : 'across'];
+          const oppKey = `${oppCoverage.rootnum}/${
+            isAcross ? 'down' : 'across'
+          }`;
+          newClues = {
+            ...newClues,
+            [oppKey]: updateClue(
+              oppCoverage,
+              answer[z - (!isAcross ? rootCell.x : rootCell.y)],
+              clues[oppKey]
+            ),
+          };
+        }
+
+        return newClues;
+      });
+    },
+    [cellCoverageMap, rootCells, wordMode]
+  );
+
+  const onClueTextChange = useCallback(
+    (clue: string, index: number, direction: Direction) => {
+      const key = `${index}/${direction}`;
+
+      setClues((clues) => ({
+        ...clues,
+        [key]: {
+          ...clues[key],
+          clue,
+        },
+      }));
+    },
+    []
+  );
+
   const onHover = useCallback((cell: GridCellProperties) => {
     setHoveredCell(cell);
   }, []);
+
+  const resetGrid = useCallback(() => {
+    setBlocks([]);
+    setRootCells([]);
+    setRootCellTable([]);
+    setCellCoverageMap([]);
+    setHoveredCell(undefined);
+    setSelectedCell(undefined);
+    setClues({});
+  }, []);
+
+  const selectedClue = useMemo(() => {
+    const index = selectedCell?.coverage[wordMode].rootnum;
+
+    if (!index) {
+      return;
+    }
+
+    return {
+      [`${index}/${wordMode}`]: { ...clues[`${index}/${wordMode}`] },
+    };
+  }, [selectedCell, clues, wordMode]);
 
   const table: GridCellProperties[][] = useMemo(() => {
     if (!rows || !cols) {
@@ -157,28 +418,37 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
         const rootCell: RootCell | undefined =
           rootCellTable?.length && rootCellTable[rowNum][colNum];
         const rootnum = rootCell?.index;
-
-        const isSelected =
+        const isSelected = !!(
           selectedCell &&
           selectedCell.rowNum === rowNum &&
-          selectedCell.colNum === colNum;
+          selectedCell.colNum === colNum
+        );
         const coverage =
           cellCoverageMap.length && cellCoverageMap[rowNum][colNum];
+        const coverageParams = coverage && coverage[wordMode];
         const isWordHighlighted =
           !isSelected &&
           selectedCell?.coverage &&
-          coverage &&
-          coverage[wordMode] === selectedCell.coverage[wordMode];
+          coverageParams?.rootnum === selectedCell.coverage[wordMode].rootnum;
         const isRootnumHighlighted =
           (isSelected || isWordHighlighted) &&
-          coverage &&
-          coverage[wordMode] === rootCell?.index;
+          coverageParams.rootnum === rootCell?.index;
+        const block = !!blockTable[rowNum][colNum];
+
+        let value: string;
+        if (!block && !!coverageParams) {
+          const clue: Clue = clues[`${coverageParams.rootnum}/${wordMode}`];
+
+          if (clue && coverageParams) {
+            value = clue?.answer[coverageParams.position] || '';
+          }
+        }
 
         return {
           rowNum,
           colNum,
           rootnum,
-          block: !!blockTable[rowNum][colNum],
+          block,
           isBlockHighlighted:
             hoveredCell &&
             ((hoveredCell.rowNum === rowNum && hoveredCell.colNum === colNum) ||
@@ -190,6 +460,8 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
           coverage,
           isWordHighlighted,
           isRootnumHighlighted,
+          value,
+          isSelected,
         } as GridCellProperties;
       })
     );
@@ -204,6 +476,7 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
     cellCoverageMap,
     selectedCell,
     wordMode,
+    clues,
   ]);
 
   return {
@@ -215,6 +488,9 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
     table,
     blockMode,
     showHoverMode,
+    clues,
+    selectedClue,
+    wordMode,
 
     setRows,
     setCols,
@@ -224,6 +500,11 @@ const useCreateGrid = (grid?: GridInterface): UseCreateGridResponse => {
     toggleBlock,
     setHoverMode,
     selectCell,
+    resetGrid,
+    onCellValueChange,
+    onClueAnswerChange,
+    onClueTextChange,
+    moveSelectedCell,
   };
 };
 

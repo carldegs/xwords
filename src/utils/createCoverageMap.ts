@@ -1,4 +1,5 @@
 import CellCoverage from '../types/CellCoverage';
+import Direction from '../types/Direction';
 import { Position, RootCell } from '../types/GridModel';
 import sortPositions from './sortPositions';
 
@@ -14,8 +15,12 @@ const createCoverageMap = (
     sortedRootCells = sortPositions(rootCells);
   }
 
-  let cellCoverage: (Position & { index: number; type: 'across' | 'down' })[] =
-    [];
+  let cellCoverage: (Position & {
+    index: number;
+    type: Direction;
+    relPos: number;
+    wordLength: number;
+  })[] = [];
 
   sortedRootCells.forEach((rc) => {
     if (rc?.across) {
@@ -27,6 +32,8 @@ const createCoverageMap = (
             y: rc.y + i,
             index: rc.index,
             type: 'across',
+            relPos: i,
+            wordLength: rc.across.length,
           },
         ];
       });
@@ -41,6 +48,8 @@ const createCoverageMap = (
             y: rc.y,
             index: rc.index,
             type: 'down',
+            relPos: i,
+            wordLength: rc.down.length,
           },
         ];
       });
@@ -61,7 +70,11 @@ const createCoverageMap = (
         cc += 1;
         covered = {
           ...covered,
-          [cell.type]: cell.index,
+          [cell.type]: {
+            rootnum: cell.index,
+            position: cell.relPos,
+            wordLength: cell.wordLength,
+          },
         };
         cell = cc < cellCoverage.length && cellCoverage[cc];
       }

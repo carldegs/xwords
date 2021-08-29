@@ -43,6 +43,7 @@ const createRootCells = (blockTable: number[][]): RootCell[] => {
               ...rootCell,
               across: {
                 length,
+                clue: `${index}/across`,
               },
             };
           }
@@ -60,6 +61,7 @@ const createRootCells = (blockTable: number[][]): RootCell[] => {
               ...rootCell,
               down: {
                 length,
+                clue: `${index}/down`,
               },
             };
           }

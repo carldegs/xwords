@@ -8,9 +8,15 @@ interface GridProps {
   table?: GridCellProperties[][];
   onCellClick?: GridCellProps['onClick'];
   onCellHover?: GridCellProps['onHover'];
+  onCellValueChange?: GridCellProps['onCellValueChange'];
 }
 
-const Grid: React.FC<GridProps> = ({ table, onCellClick, onCellHover }) => {
+const Grid: React.FC<GridProps> = ({
+  table,
+  onCellClick,
+  onCellHover,
+  onCellValueChange,
+}) => {
   return (
     <Box w="fit-content" bg="gray.900" p={1} borderRadius={4}>
       {table?.map((row) => (
@@ -20,6 +26,7 @@ const Grid: React.FC<GridProps> = ({ table, onCellClick, onCellHover }) => {
               key={`(${cell.rowNum}, ${cell.colNum})`}
               onClick={onCellClick}
               onHover={onCellHover}
+              onCellValueChange={onCellValueChange}
               cursor="pointer"
               {...cell}
             />

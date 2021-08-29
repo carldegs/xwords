@@ -13,6 +13,9 @@
     "@chakra-ui/react": "^1.6.1",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
+    "@fortawesome/fontawesome-svg-core": "^1.2.36",
+    "@fortawesome/free-solid-svg-icons": "^5.15.4",
+    "@fortawesome/react-fontawesome": "^0.1.15",
     "@hookform/resolvers": "^2.5.0",
     "@typegoose/typegoose": "^8.1.1",
     "framer-motion": "^4",
@@ -23,7 +26,8 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-hook-form": "^7.6.0",
-    "react-query": "^3.16.0"
+    "react-query": "^3.16.0",
+    "react-textarea-autosize": "^8.3.3"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^2.0.2",

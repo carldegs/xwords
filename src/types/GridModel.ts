@@ -1,9 +1,4 @@
-import {
-  getModelForClass,
-  modelOptions,
-  prop,
-  Ref,
-} from '@typegoose/typegoose';
+import { getModelForClass, modelOptions, prop } from '@typegoose/typegoose';
 
 // TODO: Create own model
 export class Clue {
@@ -19,7 +14,12 @@ export class RootCellDir {
   public length: number;
 
   @prop()
-  public clue?: Ref<Clue>;
+  public clue?: string;
+}
+
+export interface ExtendedRootCellDir {
+  length: number;
+  clue?: Clue;
 }
 
 export class RootCell {
@@ -37,6 +37,14 @@ export class RootCell {
 
   @prop()
   public down?: RootCellDir;
+}
+
+export interface ExtendedRootCell {
+  x: number;
+  y: number;
+  index?: number;
+  across?: ExtendedRootCellDir;
+  down?: ExtendedRootCellDir;
 }
 
 export class Position {
