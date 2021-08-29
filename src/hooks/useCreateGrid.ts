@@ -37,6 +37,7 @@ export interface UseCreateGridResponse extends GridInterface {
   resetGrid: () => void;
   onCellValueChange: (cell: GridCellProperties, value: string) => void;
   wordMode: Direction;
+  moveSelectedCell: (grid: GridCellProperties, value: string) => void;
 
   table?: GridCellProperties[][];
   clues: Record<string, Clue>;
@@ -257,12 +258,11 @@ const useCreateGrid = (
     _setBlockMode(isBlockMode);
   }, []);
 
-  const moveCell = useCallback(
-    (grid: GridCellProperties, backwards = false) => {
+  const moveSelectedCell = useCallback(
+    (grid: GridCellProperties, backward = false) => {
       let newX = grid.rowNum;
       let newY = grid.colNum;
       let iter = 0;
-      const backward = !value;
 
       do {
         if (!backward && newX === rows - 1 && newY === cols - 1) {
@@ -296,7 +296,7 @@ const useCreateGrid = (
         coverage: cellCoverageMap ? cellCoverageMap[newX][newY] : {},
       });
     },
-    [rows, cols, cellCoverageMap, blockTable]
+    [rows, cols, cellCoverageMap, blockTable, wordMode]
   );
 
   const onCellValueChange = useCallback(
@@ -315,8 +315,10 @@ const useCreateGrid = (
           clues[oppKey]
         ),
       }));
+
+      moveSelectedCell(grid, !value);
     },
-    [wordMode]
+    [wordMode, moveSelectedCell]
   );
 
   const onClueAnswerChange = useCallback(
@@ -502,6 +504,7 @@ const useCreateGrid = (
     onCellValueChange,
     onClueAnswerChange,
     onClueTextChange,
+    moveSelectedCell,
   };
 };
 
